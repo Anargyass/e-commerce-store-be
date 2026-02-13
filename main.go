@@ -10,7 +10,7 @@ func main() {
     InitDB()
 
     // 2. Daftarkan Route (Handler dari products.go)
-    http.HandleFunc("/api/products", productsHandler)
+    http.HandleFunc("/api/products", authMiddleware(productsHandler))
 	http.HandleFunc("/api/register", registerHandler)
     http.HandleFunc("/api/login", loginHandler)
 

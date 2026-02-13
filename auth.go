@@ -36,6 +36,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&input) // error handling diabaikan untuk singkatnya
 
 		// 1. Cari user berdasarkan username/email
+        // buat rate limit agar tidak mudah di-brute force
+        var loginAttempts int64
+        DB.Model(&User{}).Where("email = ?", input.Username).Count(&loginAttempts)
+        if loginAttempts > 5 {
+            http.Error(w, "Too many login attempts", http.StatusTooManyRequests)
+            return
+        }
+
 		var user User
 		if err := DB.Where("email = ?", input.Username).First(&user).Error; err != nil {
 			http.Error(w, "Email tidak ditemukan", http.StatusUnauthorized)
@@ -53,7 +61,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			"user_id": user.ID,
 			"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token berlaku 24 jam
 		})
-		tokenString, _ := token.SignedString([]byte("your_secret_key")) // Ganti dengan secret key yang aman
+		tokenString, _ := token.SignedString(jwtKey) // Ganti dengan secret key yang aman
 
 		// 4. Kirim token ke frontend
 		json.NewEncoder(w).Encode(map[string]string{
